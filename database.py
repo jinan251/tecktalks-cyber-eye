@@ -4,7 +4,7 @@ import pyodbc
 #  Connection settings — update these to match
 #  your SQL Server setup in SSMS
 # ─────────────────────────────────────────────
-SERVER   = "localhost"          # or your server name shown in SSMS
+SERVER   = "DESKTOP-29AHSG1"          # or your server name shown in SSMS
 DATABASE = "CyberEyeDB"
 DRIVER   = "ODBC Driver 17 for SQL Server"
 
