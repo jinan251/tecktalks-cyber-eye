@@ -1,27 +1,38 @@
 import gradio as gr
+import requests
 
-def scan_link(link):
+# The URL of your running FastAPI server
+API_URL = "http://127.0.0.1:8000/scan-link"
+
+def scan_link_real(link):
     """
-    A placeholder function to simulate link scanning for phishing.
-    In a real application, this would involve more sophisticated checks.
+    Sends the URL to the FastAPI backend and returns the final result.
     """
-    if "phishing" in link.lower() or "malicious" in link.lower():
-        return "Warning: This link might be phishing!"
-    elif "safe" in link.lower() or "google.com" in link.lower():
-        return "This link appears safe."
-    else:
-        return "Scanning complete: Unable to determine phishing status with current simple logic. (Placeholder)"
+    try:
+        # Send a POST request to the backend
+        response = requests.post(API_URL, json={"url": link})
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Extract results from the backend response
+            final = data.get("final_result", "unknown")
+            heuristic = data.get("heuristic_result", "unknown")
+            google = data.get("google_result", "unknown")
+            
+            return f"Final Decision: {final.upper()}\n(Heuristic: {heuristic}, Google: {google})"
+        else:
+            return "Error: Backend is not responding correctly."
+    except Exception as e:
+        return f"Error: Make sure the Backend server is running! ({e})"
 
 # Create the Gradio interface
 iface = gr.Interface(
-    fn=scan_link,
+    fn=scan_link_real,
     inputs=gr.Textbox(lines=2, placeholder="Enter a URL to scan..."),
     outputs="text",
-    title="URL Scanner for Fishing Safety",
-    description="Paste a URL below and click 'Submit' to check if it's potentially a phishing link."
+    title="CyberEye: Professional URL Scanner",
+    description="This interface is now connected to your FastAPI Backend and SQLite Database."
 )
 
-# Launch the interface
-# The `share=True` option generates a public, shareable link (valid for 72 hours)
-# which is useful when running in Colab.
-iface.launch(debug=True)
+if __name__ == "__main__":
+    iface.launch()
