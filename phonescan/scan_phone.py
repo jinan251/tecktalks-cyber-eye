@@ -1,36 +1,56 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+
+from database import get_db
+from crud import save_scan
+from db_models import ScanType, ScanResult, User
+
+from login.auth import get_current_user
+
 from phonescan.models import PhoneRequest
-from phonescan.phone_utils import normalize_phone,basic_format_check
+from phonescan.phone_utils import normalize_phone, basic_format_check
 from phonescan.phone_detection import detect_phone_local
 from phonescan.phone_validation import validate_phone
 from phonescan.phone_api import get_phone_info
 from phonescan.phone_api_detection import analyze_phone_result
+
 router = APIRouter()
 
+
+def convert_status_to_scan_result(status: str) -> ScanResult:
+    if status == "safe":
+        return ScanResult.safe
+    if status == "suspicious":
+        return ScanResult.suspicious
+    if status == "phishing":
+        return ScanResult.phishing
+    return ScanResult.unknown
+
+
 @router.post("/scan-phone")
-def scan_phone(request: PhoneRequest):
+def scan_phone(
+    request: PhoneRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     phone = normalize_phone(request.phone)
 
     if not phone:
         raise HTTPException(status_code=400, detail="Phone is required")
 
-    # 1. validation
     format_ok = basic_format_check(phone)
     validation_result = validate_phone(phone)
 
-    # 2. local detection
     local_result = detect_phone_local(phone)
 
-    # 3. API result
     api_data = get_phone_info(phone)
     api_result = analyze_phone_result(api_data)
 
     local_status = local_result["status"]
     api_status = api_result["status"]
 
-    # 4. final decision
     if not format_ok or not validation_result.get("valid", False):
-        final_status = "invalid"
+        final_status = "unknown"
 
     elif local_status == "suspicious" or api_status == "suspicious":
         final_status = "suspicious"
@@ -41,10 +61,20 @@ def scan_phone(request: PhoneRequest):
     else:
         final_status = "unknown"
 
+    save_scan(
+        db=db,
+        scan_type=ScanType.phone,
+        input_value=phone,
+        result=convert_status_to_scan_result(final_status),
+        user_id=current_user.id
+    )
+
     return {
         "phone": phone,
         "final_status": final_status,
         "validation": validation_result,
         "local_analysis": local_result,
-        "api_analysis": api_result
+        "api_analysis": api_result,
+        "user_id": current_user.id,
+        "saved": True
     }

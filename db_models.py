@@ -19,6 +19,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
+from sqlalchemy import Boolean
 
 from database import Base   # ← comes from database.py
 
@@ -57,6 +58,10 @@ class User(Base):
     username   = Column(String(100), unique=True, nullable=False, index=True)
     email      = Column(String(200), unique=True, nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    #testing 
+    is_verified = Column(Boolean, default=False, nullable=False)
+    verification_token = Column(String(255), nullable=True, unique=True)
+    token_expiry = Column(DateTime(timezone=True), nullable=True)
 
     # ── Week 2 addition ──────────────────────────────────────
     # Stores the bcrypt hash of the password — NEVER the real password.

@@ -18,6 +18,7 @@
 
 from sqlalchemy.orm import Session
 from db_models import User, ScanHistory, ScanType, ScanResult
+from sqlalchemy.exc import SQLAlchemyError
 
 
 # ════════════════════════════════════════════════════════════
@@ -25,7 +26,27 @@ from db_models import User, ScanHistory, ScanType, ScanResult
 #  Added in Week 2 — needed for login and sign-up system.
 # ════════════════════════════════════════════════════════════
 
-def create_user(db: Session, username: str, email: str, password_hash: str) -> User:
+#def create_user(db: Session, username: str, email: str, password_hash: str) -> User:
+def create_user(db, username: str, email: str, password_hash: str,
+                is_verified=False, verification_token=None, token_expiry=None):
+    try:
+        user = User(
+            username=username,
+            email=email,
+            password_hash=password_hash,
+            is_verified=is_verified,
+            verification_token=verification_token,
+            token_expiry=token_expiry
+        )
+
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise
     """
     [Week 2] Inserts a new user into the users table.
 
@@ -83,14 +104,56 @@ def get_user_by_id(db: Session, user_id: int) -> User | None:
 #  SCAN HISTORY OPERATIONS
 #  save_scan existed in Week 1. Everything else added in Week 2.
 # ════════════════════════════════════════════════════════════
+ 
+from sqlalchemy.exc import SQLAlchemyError
 
 def save_scan(
     db: Session,
-    scan_type: ScanType,          # ScanType.url  or  ScanType.phone
-    input_value: str,             # the actual URL or phone number
-    result: ScanResult,           # ScanResult.safe / .suspicious / .phishing / .unknown
-    user_id: int | None = None,   # None = anonymous (not logged in)
+    scan_type: ScanType,
+    input_value: str,
+    result: ScanResult,
+    user_id: int | None = None,
 ) -> ScanHistory:
+    try:
+        scan = ScanHistory(
+            user_id=user_id,
+            type=scan_type,
+            input_value=input_value,
+            result=result,
+        )
+
+        db.add(scan)
+        db.commit()
+        db.refresh(scan)
+        return scan
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#def save_scan(
+    #db: Session,
+    #scan_type: ScanType,          # ScanType.url  or  ScanType.phone
+    #input_value: str,             # the actual URL or phone number
+   # result: ScanResult,           # ScanResult.safe / .suspicious / .phishing / .unknown
+    #user_id: int | None = None,   # None = anonymous (not logged in)
+#) -> ScanHistory:
     """
     [Week 1 + Week 2] Saves a completed scan to scan_history.
 
@@ -153,3 +216,18 @@ def get_scan_by_id(db: Session, scan_id: int) -> ScanHistory | None:
     Useful for looking up one specific scan result.
     """
     return db.query(ScanHistory).filter(ScanHistory.id == scan_id).first()
+
+
+
+def update_verification_token(db, user, token, expiry):
+    try:
+        user.verification_token = token
+        user.token_expiry = expiry
+
+        db.commit()
+        db.refresh(user)
+        return user
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise

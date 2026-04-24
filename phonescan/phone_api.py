@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_KEY = os.getenv("0727412f42244882baebc0e20414136e")
+API_KEY = os.getenv("ABSTRACT_API_KEY")
 
 def get_phone_info(phone_number: str):
     url = "https://phonevalidation.abstractapi.com/v1/"
