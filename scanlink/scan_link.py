@@ -10,6 +10,7 @@ from login.auth import get_current_user   # 🔐 JWT
 from scanlink.models import URLRequest
 from scanlink.detection import detect_link
 from scanlink.google_safe import check_google_safe
+from scanlink.virustotal import check_virustotal
 
 router = APIRouter()
 
@@ -26,9 +27,12 @@ def convert_to_enum(result: str) -> ScanResult:
 
 @router.post("/scan-link")
 def scan_link(
+
+    
     request: URLRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)   # 🔐 PROTECTED
+    
 ):
     url = request.url.strip()
 
@@ -41,20 +45,26 @@ def scan_link(
     # 2. Google Safe Browsing
     google_result = check_google_safe(url)
 
-    # 3. Final decision
-    if google_result == "phishing":
+    # 3. VirusTotal detection
+    vt_result = check_virustotal(url)
+
+    # 4. Final decision
+    if google_result == "phishing" or vt_result == "phishing":
         final_result = "phishing"
+
+    elif vt_result == "suspicious":
+        final_result = "suspicious"
 
     elif heuristic_result == "phishing":
         final_result = "phishing"
 
-    elif heuristic_result == "suspicious" or google_result == "unknown":
+    elif heuristic_result == "suspicious":
         final_result = "suspicious"
 
     else:
         final_result = "safe"
 
-    # 4. Save in DB WITH USER
+    # 5. Save in DB WITH USER
     save_scan(
         db=db,
         scan_type=ScanType.url,

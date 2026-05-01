@@ -33,34 +33,53 @@ def scan_phone(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+
+    # =========================
+    # 1. INPUT VALIDATION
+    # =========================
+    if not request.phone:
+        raise HTTPException(status_code=400, detail="Phone field is empty")
+
     phone = normalize_phone(request.phone)
 
     if not phone:
-        raise HTTPException(status_code=400, detail="Phone is required")
+        raise HTTPException(status_code=400, detail="Invalid phone format")
 
+    # =========================
+    # 2. ANALYSIS LAYERS
+    # =========================
     format_ok = basic_format_check(phone)
     validation_result = validate_phone(phone)
 
     local_result = detect_phone_local(phone)
-
     api_data = get_phone_info(phone)
     api_result = analyze_phone_result(api_data)
 
-    local_status = local_result["status"]
-    api_status = api_result["status"]
+    local_status = local_result.get("status", "unknown")
+    api_status = api_result.get("status", "unknown")
+
+    # =========================
+    # 3. FINAL DECISION (CLEAN LOGIC)
+    # =========================
 
     if not format_ok or not validation_result.get("valid", False):
-        final_status = "unknown"
+        final_status = "invalid"
 
-    elif local_status == "suspicious" or api_status == "suspicious":
+    elif api_status == "phishing" or local_status == "phishing":
+        final_status = "phishing"
+
+    elif api_status == "suspicious" or local_status == "suspicious":
         final_status = "suspicious"
 
-    elif local_status == "safe" and validation_result.get("valid", False):
+    elif api_status == "safe" and local_status == "safe":
         final_status = "safe"
 
     else:
         final_status = "unknown"
 
+    # =========================
+    # 4. SAVE
+    # =========================
     save_scan(
         db=db,
         scan_type=ScanType.phone,

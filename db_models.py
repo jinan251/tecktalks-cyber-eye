@@ -61,7 +61,7 @@ class User(Base):
     #testing 
     is_verified = Column(Boolean, default=False, nullable=False)
     verification_token = Column(String(255), nullable=True, unique=True)
-    token_expiry = Column(DateTime(timezone=True), nullable=True)
+    token_expiry = Column(Integer, nullable=True) # Changed from DateTime to Integer
 
     # ── Week 2 addition ──────────────────────────────────────
     # Stores the bcrypt hash of the password — NEVER the real password.
