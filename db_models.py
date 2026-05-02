@@ -78,53 +78,122 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    profile = relationship(
+        "UserProfile",
+        back_populates="user",
+        uselist=False,          # one-to-one: returns a single object, not a list
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self):
         return f"<User id={self.id} username={self.username!r}>"
 
 
+
 # ════════════════════════════════════════════════════════════
-#  TABLE 2: scan_history
+#  TABLE 2 (NEW — Week 3): user_profiles
+#
+#  Why a separate table instead of adding columns to users?
+#    - Keeps the users table focused on authentication only.
+#    - Profile fields are optional; most can be NULL at first.
+#    - Easy to extend later without touching the auth table.
+#
+#  One row = extra personal info for one registered user.
+#  The row is created lazily — on first profile save/update.
+# ════════════════════════════════════════════════════════════
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+
+    id      = Column(Integer, primary_key=True, index=True, autoincrement=True)
+
+    # Links to users.id.  UNIQUE enforces one-to-one at DB level.
+    # CASCADE: if user is deleted, profile is deleted automatically.
+    user_id = Column(
+                Integer,
+                ForeignKey("users.id", ondelete="CASCADE"),
+                nullable=False,
+                unique=True,
+                index=True,
+              )
+
+    # ── Profile fields (all optional) ────────────────────────
+    full_name  = Column(String(200), nullable=True)   # display / real name
+    bio        = Column(Text,        nullable=True)   # short personal bio
+    avatar_url = Column(String(500), nullable=True)   # URL to profile picture
+
+    # ── Timestamps ───────────────────────────────────────────
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+                   DateTime(timezone=True),
+                   server_default=func.now(),
+                   onupdate=func.now(),   # refreshed automatically on every save
+                 )
+
+    user = relationship("User", back_populates="profile")
+
+    def __repr__(self):
+        return f"<UserProfile user_id={self.user_id} full_name={self.full_name!r}>"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+# ════════════════════════════════════════════════════════════
+#  TABLE 3: scan_history  (updated Week 3)
 #  One row = one completed scan (URL or phone number).
-#  user_id can be NULL — that means the scan was anonymous
-#  (done by someone who is not logged in).
+#
+#  Week 3 additions:
+#    + risk_score  float 0.0–1.0 from the ML model
+#    + notes       free-text explanation / AI reasoning
 # ════════════════════════════════════════════════════════════
 class ScanHistory(Base):
     __tablename__ = "scan_history"
 
-    # ── Week 1 columns ───────────────────────────────────────
+    # ── Week 1 ───────────────────────────────────────────────
     id      = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(
                 Integer,
                 ForeignKey("users.id", ondelete="SET NULL"),
-                nullable=True,    # NULL = anonymous scan, allowed
+                nullable=True,    # NULL = anonymous scan
                 index=True,
               )
-    result  = Column(Enum(ScanResult), nullable=False)   # final verdict
+    result  = Column(Enum(ScanResult), nullable=False)
 
-    # ── Week 2 additions ─────────────────────────────────────
-    # Week 1 had a column called 'url' (URL only).
-    # Week 2 replaced it with two columns so one table handles
-    # both URL scans and phone scans:
-    #
-    #   type        →  'url' or 'phone'
-    #   input_value →  the actual URL or phone number
-    #
+    # ── Week 2 ───────────────────────────────────────────────
     type        = Column(Enum(ScanType), nullable=False)
     input_value = Column(Text, nullable=False)
+    timestamp   = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
-    # ── Week 1 column (renamed in Week 2 for clarity) ────────
-    # Was called 'scanned_at' in Week 1, renamed to 'timestamp'
-    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    # ── Week 3 ───────────────────────────────────────────────
+    # Confidence score from the detection model: 0.0 (safe) → 1.0 (phishing).
+    # NULL when the model does not return a numeric score.
+    #risk_score = Column(Float, nullable=True)
 
-    # ── Relationship ─────────────────────────────────────────
-    # Lets you access the user who made this scan:
-    #   scan.user  →  User object (or None if anonymous)
+    # Explanation text — e.g. "Domain registered 2 days ago; no HTTPS."
+    # Set by the ML pipeline; NULL if not available.
+    #notes      = Column(Text, nullable=True)
+
     user = relationship("User", back_populates="scans")
 
     def __repr__(self):
         return (
             f"<ScanHistory id={self.id} "
-            f"type={self.type} "
-            f"result={self.result} "
-            f"input={str(self.input_value)[:30]!r}>"
+            f"type={self.type} result={self.result} "
+            f"risk={self.risk_score} input={str(self.input_value)[:30]!r}>"
         )
