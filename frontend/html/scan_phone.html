@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CyberEye - Scan Phone</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+
+  <h2 class="logo">Cyber<span>Eye</span></h2>
+
+  <a href="dashboard.html">Dashboard</a>
+  <a href="scan_link.html">Scan Link</a>
+  <a href="scan_phone.html">Scan Phone</a>
+  <a href="profile.html">Profile</a>
+  <a href="history.html">History</a>
+
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <h1>Scan Phone Number</h1>
+
+  <p class="tagline">Check if a phone number is safe or suspicious</p>
+
+  <!-- INPUT -->
+  <div class="scan-box">
+
+    <select id="countrySelect">
+    <option value="">🌍 Country</option>
+</select>
+
+<input type="text" id="phone" placeholder="Phone number">
+
+<button onclick="scanPhone()" class="btn login">
+    Scan
+</button>
+
+  </div>
+
+  <!-- RESULT -->
+  <div id="phoneResult" class="result-box"></div>
+
+</div>
+
+<script src="../javaScript/scan_phone.js"></script>
+</body>
+</html>

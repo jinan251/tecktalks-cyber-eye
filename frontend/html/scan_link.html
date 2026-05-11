@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CyberEye - Scan Link</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+
+  <h2 class="logo">Cyber<span>Eye</span></h2>
+
+  <a href="dashboard.html">Dashboard</a>
+  <a href="scan_link.html">Scan Link</a>
+  <a href="scan_phone.html">Scan Phone</a>
+  <a href="profile.html">Profile</a>
+  <a href="history.html">History</a>
+
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <h1>Scan URL</h1>
+
+  <p class="tagline">Check if a link is safe or phishing</p>
+
+  <!-- INPUT -->
+  <div class="scan-box">
+
+    <input type="text" id="url" placeholder="Enter URL here...">
+
+    <button onclick="scanLink()" class="btn login">
+      Scan
+    </button>
+
+  </div>
+
+  <!-- RESULT -->
+  <div id="result" class="result-box"></div>
+
+</div>
+
+<script src="../javaScript/scan_link.js"></script>
+</body>
+</html>
